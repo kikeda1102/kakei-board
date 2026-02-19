@@ -1,4 +1,4 @@
-.PHONY: up down dev-backend lint-backend test-backend dev-web lint-web build-web lint
+.PHONY: up down dev-backend lint-backend test-backend dev-web lint-web build-web test-web lint
 
 # インフラ
 up:
@@ -26,6 +26,9 @@ lint-web:
 
 build-web:
 	cd web && npm run build
+
+test-web:
+	cd web && npm test
 
 # 全体
 lint: lint-backend lint-web

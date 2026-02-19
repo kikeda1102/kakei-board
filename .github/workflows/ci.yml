@@ -13,6 +13,24 @@ jobs:
     defaults:
       run:
         working-directory: backend
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root-ci
+          MYSQL_DATABASE: kakei_board_test
+          MYSQL_USER: kakei_test
+          MYSQL_PASSWORD: kakei-ci-pass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -proot-ci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+          --health-start-period=30s
+
     steps:
       - uses: actions/checkout@v4
 
@@ -31,6 +49,8 @@ jobs:
 
       - name: Run tests
         run: go test ./...
+        env:
+          TEST_DATABASE_URL: "kakei_test:kakei-ci-pass@tcp(127.0.0.1:3306)/kakei_board_test?parseTime=true&loc=UTC&charset=utf8mb4"
 
   frontend:
     name: Frontend
@@ -52,6 +72,9 @@ jobs:
 
       - name: Run lint
         run: npm run lint
+
+      - name: Run tests
+        run: npm test
 
       - name: Build
         run: npm run build
