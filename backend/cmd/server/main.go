@@ -11,6 +11,9 @@ import (
 	"time"
 
 	"github.com/kikeda1102/kakei-board/backend/internal/database"
+	"github.com/kikeda1102/kakei-board/backend/internal/eventstore"
+	"github.com/kikeda1102/kakei-board/backend/internal/expense"
+	"github.com/kikeda1102/kakei-board/backend/internal/middleware"
 	"github.com/kikeda1102/kakei-board/backend/migrations"
 )
 
@@ -37,10 +40,10 @@ func main() {
 		log.Fatalf("migrations: %v", err)
 	}
 
-	mux := buildMux(db)
+	handler := buildHandler(db)
 	srv := &http.Server{
 		Addr:    ":" + port,
-		Handler: mux,
+		Handler: handler,
 	}
 
 	// graceful shutdown
@@ -66,7 +69,7 @@ func main() {
 	log.Println("server stopped")
 }
 
-func buildMux(db *sql.DB) *http.ServeMux {
+func buildHandler(db *sql.DB) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -90,5 +93,11 @@ func buildMux(db *sql.DB) *http.ServeMux {
 		}
 	})
 
-	return mux
+	store := eventstore.NewMySQLStore(db)
+	projector := expense.NewProjector(db)
+	repo := expense.NewRepository(db)
+	expenseHandler := expense.NewHandler(store, projector, repo)
+	expenseHandler.Register(mux)
+
+	return middleware.CORS(mux)
 }
